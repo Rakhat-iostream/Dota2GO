@@ -1,5 +1,11 @@
 package main
 
+import (
+	"bufio"
+	"fmt"
+	"os"
+)
+
 type Restaurant interface {
 	getMenu() map[string]int
 }
@@ -165,5 +171,17 @@ func (y *YandexFood) NotifyObservers() {
 }
 
 func main() {
-
+	fmt.Println("Welcome to the Food Delivery Service")
+	fmt.Println("Do you have account? y/n")
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Scan()
+	inp := scanner.Text()
+	switch {
+	case inp == "y":
+		fmt.Println("Enter login & pass")
+	case inp == "n":
+		fmt.Println("Account creation")
+	default:
+		fmt.Println("Nothing choosen!")
+	}
 }
