@@ -1,7 +1,7 @@
-package GoGinal
+package main
 
 import "fmt"
 
 func main() {
-	fmt.Errorf("GG")
+	fmt.Println("GG")
 }
