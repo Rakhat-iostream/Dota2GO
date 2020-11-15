@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"os"
 )
@@ -171,15 +170,47 @@ func (y *YandexFood) NotifyObservers() {
 }
 
 func main() {
+	var name string
+	var password string
+	var input string
+	var choice int
+
 	fmt.Println("Welcome to the Food Delivery Service")
+auth: //authorization event
 	fmt.Println("Do you have account? y/n")
-	scanner := bufio.NewScanner(os.Stdin)
-	scanner.Scan()
-	inp := scanner.Text()
+	fmt.Fscan(os.Stdin, &input)
+
 	switch {
-	case inp == "y":
-		fmt.Println("Enter login & pass")
-	case inp == "n":
+	case input == "y":
+		fmt.Println("Enter name & password")
+		fmt.Fscan(os.Stdin, &name)
+		fmt.Fscan(os.Stdin, &password)
+		authorized := true
+		if authorized {
+		home: //home/start point
+			fmt.Printf("Welcome %s", name+"! Choose... \n"+
+				"1 - Show me notifications \n"+
+				"2 - Order food \n"+
+				"3 - Account settings \n")
+
+			fmt.Fscan(os.Stdin, &choice)
+			switch {
+			case choice == 1:
+				fmt.Println("All notifications here")
+			case choice == 2:
+				fmt.Println("Outputting menu... Choose food ID")
+				fmt.Fscan(os.Stdin, &input)
+				fmt.Printf("You have choosen %s", input)
+			case choice == 3:
+				fmt.Println("Account settings like change wallet, address")
+			default:
+				goto home
+				break
+			}
+		} else {
+			goto auth
+		}
+	case input == "n":
 		fmt.Println("Account creation")
 	default:
 		fmt.Println("Nothing choosen!")
