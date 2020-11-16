@@ -10,10 +10,10 @@ import (
 //Useful unit
 type Meal struct {
 	MealName string
-	Cost     int
+	Cost     float64
 }
 
-func NewMeal(mname string, mcost int) *Meal {
+func NewMeal(mname string, mcost float64) *Meal {
 	return &Meal{MealName: mname,
 		Cost: mcost}
 }
@@ -27,49 +27,63 @@ type IRestaurant interface {
 }
 
 //Concrete template of product
-type Restoran struct {
+type Restaurant struct {
 	RestName string
 	Menu     []Meal
 }
 
-func (r *Restoran) setName(name string) {
+func (r *Restaurant) setName(name string) {
 	r.RestName = name
 }
 
-func (r *Restoran) setMenu(meals []Meal) {
+func (r *Restaurant) setMenu(meals []Meal) {
 	r.Menu = meals
 }
 
-func (r *Restoran) getName() string {
+func (r *Restaurant) getName() string {
 	return r.RestName
 }
 
-func (r *Restoran) getMenu() []Meal {
+func (r *Restaurant) getMenu() []Meal {
 	return r.Menu
 }
 
 //Concrete product
 type KFC struct {
-	Restoran
+	Restaurant
 }
 
 func NewKFC() IRestaurant {
-	return &KFC{Restoran: Restoran{RestName: "KFC",
+	return &KFC{Restaurant: Restaurant{RestName: "KFC",
 		Menu: []Meal{*NewMeal("Coca-Cola", 250),
-			*NewMeal("Fried Chicken", 1200),
-			*NewMeal("Shaurma", 700)}}}
+			*NewMeal("Fried_Chicken", 1200),
+			*NewMeal("BoxMaster", 1450),
+			*NewMeal("Twister", 1150),
+			*NewMeal("Zinger", 1250),
+		}}}
+}
+
+func (k *KFC) String() string {
+	return fmt.Sprintf("KFC \n")
 }
 
 //Concrete product 2
 type BurgerKing struct {
-	Restoran
+	Restaurant
 }
 
 func NewBurgerKing() IRestaurant {
-	return &BurgerKing{Restoran{RestName: "Burger King",
+	return &BurgerKing{Restaurant{RestName: "Burger King",
 		Menu: []Meal{*NewMeal("Sprite", 200),
-			*NewMeal("Grill", 900),
-			*NewMeal("Cheese Burger", 450)}}}
+			*NewMeal("Cheese_Burger", 350),
+			*NewMeal("Crispy_Chicken", 650),
+			*NewMeal("Nuggets", 900),
+			*NewMeal("Wopper", 1100),
+		}}}
+}
+
+func (b *BurgerKing) String() string {
+	return fmt.Sprintf("Burger_King \n")
 }
 
 //Factory of Restaurants
@@ -91,17 +105,17 @@ func MenuOfRestaurant(restaurantName string) {
 	menuItems := menuRest.getMenu()
 	fmt.Println("Meal Name - Cost")
 	for _, val := range menuItems {
-		fmt.Printf("%s - %d \n", val.MealName, val.Cost)
+		fmt.Printf("%s - %.2f \n", val.MealName, val.Cost)
 	}
 }
 
 //Factory Pattern END
 
-func getMealByName(mealname, restaunrantName string) (Meal, error) {
-	menuOfRest := getRestaurantsWithMenu(restaunrantName)
+func getMealByName(mealName, restaurantName string) (Meal, error) {
+	menuOfRest := getRestaurantsWithMenu(restaurantName)
 	menuItems := menuOfRest.getMenu()
 	for _, val := range menuItems {
-		if val.MealName == mealname {
+		if val.MealName == mealName {
 			return val, nil
 		}
 	}
@@ -144,7 +158,7 @@ func (u *User) Logout() {
 
 func (u *User) HandleChanges(restaurants []IRestaurant) {
 	fmt.Printf(
-		"Hello %s \n We have some changes in application: \n =============== %s ===============\n", u.Name, restaurants)
+		"Hello %s \n There are our available restaurants: \n %s \n", u.Name, restaurants)
 }
 
 func NewAccount(name, password, address string) *User {
@@ -156,17 +170,22 @@ func NewAccount(name, password, address string) *User {
 
 //kind of Strategy pattern for paying
 type Payer interface {
-	Pay(int) error
+	AddMoney(amount float64)
+	Pay(amount float64) error
 }
 
 type Wallet struct {
-	Cash int
-	card Card
+	Cash float64
+	Card Card
 }
 
-func (w *Wallet) Pay(amount int) error {
+func (w *Wallet) AddMoney(amount float64) {
+	w.Cash += amount
+}
+
+func (w *Wallet) Pay(amount float64) error {
 	if w.Cash < amount {
-		return fmt.Errorf("Not enough cash in Wallet")
+		return fmt.Errorf("not enough cash in Wallet")
 	}
 	w.Cash -= amount
 	return nil
@@ -174,84 +193,139 @@ func (w *Wallet) Pay(amount int) error {
 
 type Card struct {
 	Owner   string
-	Balance int
+	Balance float64
 }
 
-func (c *Card) Pay(amount int) error {
+func (c *Card) AddMoney(amount float64) {
+	c.Balance += amount
+}
+
+func (c *Card) Pay(amount float64) error {
 	if c.Balance < amount {
-		return fmt.Errorf("Not enough balance")
+		return fmt.Errorf("not enough balance")
 	}
 	c.Balance -= amount
 	return nil
 }
 
-func Buy(p Payer, cartSum int) { //Метод Buy скорее всего реализация в Фасаде в makeOrder()
+func Buy(p Payer, cartSum float64) { //Метод Buy скорее всего реализация в Фасаде в makeOrder()
 	switch p.(type) {
 	case *Wallet:
 		fmt.Println("Okay,here you need to pay... ")
+		//TODO
+		fmt.Println("Payment was made")
 
 	case *Card:
 		debitCard, _ := p.(*Card)
 		fmt.Println("Please, wait. Making transaction with your Card", debitCard.Owner)
 		err := p.Pay(cartSum)
 		if err != nil {
-			panic(err)
+		addingMoney:
+			fmt.Printf("You need to add %.2f more money to balance, choose amount:", cartSum-debitCard.Balance)
+			var amount float64
+			fmt.Fscan(os.Stdin, &amount)
+			if amount < cartSum-debitCard.Balance {
+				goto addingMoney
+			}
+			debitCard.AddMoney(amount)
+			fmt.Println("Money was successfully added to balance")
+			fmt.Printf("You have: %.2f \n", debitCard.Balance)
+			fmt.Println("Payment was made")
+			_ = p.Pay(cartSum)
+			fmt.Printf("Now you have: %.2f \n", debitCard.Balance)
 		}
-		fmt.Println("Payment was made")
-
 	default:
 		fmt.Println("Something new!")
 	}
+}
 
+func ShowAllDeliveryServices() {
+	fmt.Println("Glovo")
+	fmt.Println("YandexFood")
+}
+
+func ShowAllCouriers() {
+	fmt.Println("beginner")
+	fmt.Println("experienced")
+	fmt.Println("master")
 }
 
 //End of Strategy
 
 type DeliveryFacade struct {
-	Account     *User
-	FoodService *FoodService
-	Wallet      *Wallet
-	Card        *Card
+	User            User
+	DeliveryService DeliveryService
+	Wallet          Wallet
+	Card            Card
 }
 
 func (dF *DeliveryFacade) Login(name, pass string) error {
 	fmt.Println("Processing User Details [Authorization]")
-	error := dF.Account.authorize(name, pass)
-	if error != nil {
-		log.Fatalf("Errors: %s\n", error.Error())
+	err := dF.User.authorize(name, pass)
+	if err != nil {
+		log.Fatalf("Errors: %s\n", err.Error())
 	}
-	fmt.Printf("Welcome, %s! You are in System.", dF.Account.Name)
+	fmt.Printf("Welcome, %s! You are in System.", dF.User.Name)
 	return nil
 }
 
 func (dF *DeliveryFacade) RegisterUser(uname, upassword, uaddress string) {
-	dF.Account = NewAccount(uname, upassword, uaddress)
+	dF.User = *NewAccount(uname, upassword, uaddress)
+	dF.DeliveryService.addObserver(dF.User)
 	fmt.Println("You are successfully registered! Please, Login")
 }
 
 //TODO
-func (d *DeliveryFacade) makeOrder() error {
-
+func (dF *DeliveryFacade) makeOrder(card Card, cart []Meal, cartSum float64) error {
+	dF.Card = card
+	var input string
+choosingCourier:
+	fmt.Println("Please choose your courier:")
+	ShowAllCouriers()
+	var courier Courier
+	fmt.Fscan(os.Stdin, &input)
+	switch input {
+	case "beginner":
+		courier = &OrdinaryCourier{}
+	case "experienced":
+		courier = NewExperiencedCourier(&OrdinaryCourier{})
+		cartSum = cartSum + cartSum*0.1
+	case "master":
+		courier = NewMagisterCourier(NewExperiencedCourier(&OrdinaryCourier{}))
+		cartSum = cartSum + cartSum*0.15
+	default:
+		goto choosingCourier
+	}
+	fmt.Println("Courier's been chosen")
+	var orderMakingAmountOfTimeInMinutes int
+	for range cart {
+		orderMakingAmountOfTimeInMinutes += 5
+	}
+	Buy(&dF.Card, cartSum)
+	fmt.Printf("We recieved your order, it'll be ready in %d minutes \n", orderMakingAmountOfTimeInMinutes)
+	fmt.Printf("Courier is delivering your order to %v address \n", dF.User.Address)
+	fmt.Println("Hello, Look at the check")
+	for _, meal := range cart {
+		fmt.Printf("Name: %s Cost: %.2f \n", meal.MealName, meal.Cost)
+	}
+	fmt.Printf("Total sum of the check with courier additional percentage: %.2f \n", cartSum)
+	fmt.Println(courier.GiveOrderToClient())
 	return nil
 }
 
 //TODO
-func NewDeliveryFacade() *DeliveryFacade {
+func NewDeliveryFacade(deliveryService *DeliveryService) *DeliveryFacade {
 	DeliveryFacade := &DeliveryFacade{
-		//Account:     nil, //after app run, register user or login
-		FoodService: nil,
-		Wallet:      nil,
-		Card:        nil,
+		DeliveryService: *deliveryService,
 	}
-	fmt.Println("[Application Start]")
 	return DeliveryFacade
 }
 
 //Observed
-type FoodService interface {
+type DeliveryService interface {
+	showAllRestaurants()
 	addRestaurant(restaurant IRestaurant)
 	removeRestaurant(restaurant IRestaurant)
-	showAllRestaurants()
 	addObserver(user User)
 	removeObserver(user User)
 	notifyObservers()
@@ -280,6 +354,12 @@ type Glovo struct {
 	users       []User
 }
 
+func (g *Glovo) showAllRestaurants() {
+	for _, restaurant := range g.restaurants {
+		fmt.Println(restaurant)
+	}
+}
+
 func (g *Glovo) addRestaurant(restaurant IRestaurant) {
 	g.restaurants = append(g.restaurants, restaurant)
 }
@@ -289,15 +369,8 @@ func (g *Glovo) removeRestaurant(restaurant IRestaurant) {
 	g.restaurants = append(g.restaurants[:counter], g.restaurants[counter+1:]...)
 }
 
-func (g *Glovo) showAllRestaurants() {
-	for _, restaurant := range g.restaurants {
-		fmt.Println(restaurant)
-	}
-}
-
 func (g *Glovo) addObserver(user User) {
 	g.users = append(g.users, user)
-	//TODO message in facade that user was added
 }
 
 func (g *Glovo) removeObserver(user User) {
@@ -318,13 +391,11 @@ type YandexFood struct {
 
 func (y *YandexFood) addRestaurant(restaurant IRestaurant) {
 	y.restaurants = append(y.restaurants, restaurant)
-	y.notifyObservers()
 }
 
 func (y *YandexFood) removeRestaurant(restaurant IRestaurant) {
 	counter := getIndexOfRestaurantInSlice(y.restaurants, restaurant)
 	y.restaurants = append(y.restaurants[:counter], y.restaurants[counter+1:]...)
-	y.notifyObservers()
 }
 
 func (y *YandexFood) showAllRestaurants() {
@@ -335,7 +406,6 @@ func (y *YandexFood) showAllRestaurants() {
 
 func (y *YandexFood) addObserver(user User) {
 	y.users = append(y.users, user)
-	//TODO message in facade that user was added
 }
 
 func (y *YandexFood) removeObserver(user User) {
@@ -349,13 +419,64 @@ func (y *YandexFood) notifyObservers() {
 	}
 }
 
-func CalculateCartTotalSum(cart []Meal) int {
-	sum := 0
-	for _, val := range cart {
-		sum = sum + val.Cost
+func CalculateCartTotalSum(cart []Meal) float64 {
+	var sum float64
+	for _, meal := range cart {
+		sum = sum + meal.Cost
 	}
 	return sum
 }
+
+//Decorator Courier
+
+//Component
+type Courier interface {
+	GiveOrderToClient() string
+}
+
+//Target
+type OrdinaryCourier struct {
+}
+
+func (g *OrdinaryCourier) GiveOrderToClient() string {
+	return "Bonjour, here is your order! \n"
+}
+
+//Decorators:
+
+type ExperiencedCourier struct {
+	Courier Courier
+}
+
+func (s *ExperiencedCourier) GiveOrderToClient() string {
+	return s.Courier.GiveOrderToClient() + s.sayBonAppetit()
+}
+
+func (s *ExperiencedCourier) sayBonAppetit() string {
+	return "Bon appetit!\n"
+}
+
+func NewExperiencedCourier(courier Courier) *ExperiencedCourier {
+	return &ExperiencedCourier{Courier: courier}
+}
+
+type MagisterOfAllCouriers struct {
+	Courier Courier
+}
+
+func (t *MagisterOfAllCouriers) GiveOrderToClient() string {
+	return t.Courier.GiveOrderToClient() + t.be4sv()
+}
+
+func (t *MagisterOfAllCouriers) be4sv() string {
+	return "Za svoyu uletnost' deneg ne beru! (Slamming the door)\n"
+}
+
+func NewMagisterCourier(courier Courier) *MagisterOfAllCouriers {
+	return &MagisterOfAllCouriers{Courier: courier}
+}
+
+// End of decorator
 
 func main() {
 
@@ -366,26 +487,37 @@ func main() {
 	deliveryServiceYandex := &YandexFood{}
 	deliveryServiceYandex.addRestaurant(NewKFC())
 
-	DelFacade := NewDeliveryFacade()
-
 	var input string
 	var choice int
-	var myService FoodService
-
-	fmt.Println("Please, choose delivery service")
-	switch input {
-
-	}
-	fmt.Println("Welcome to the Food Delivery Service")
-
-	//DelFacade.RegisterUser("User", "Root", "NI st")
-
-start: //authorization event
-	fmt.Println("Do you have account? y/n")
+	var myService DeliveryService
+	fmt.Println("[Application Start]")
+choosingDeliveryService:
+	fmt.Println("Please, choose delivery service from list:")
+	ShowAllDeliveryServices()
 	fmt.Fscan(os.Stdin, &input)
 
-	switch {
-	case input == "y":
+	switch input {
+	case "Glovo":
+		myService = &Glovo{}
+		myService.addRestaurant(NewKFC())
+		myService.addRestaurant(NewBurgerKing())
+		fmt.Println("Welcome to the Glovo!")
+	case "YandexFood":
+		myService = &YandexFood{}
+		myService.addRestaurant(NewBurgerKing())
+		fmt.Println("Welcome to the Yandex!")
+	default:
+		goto choosingDeliveryService
+	}
+
+	deliveryServiceFacade := NewDeliveryFacade(&myService)
+
+start:
+	fmt.Println("Do you have an account? y/n")
+	fmt.Fscan(os.Stdin, &input)
+
+	switch input {
+	case "y":
 	login:
 		var name string
 		var password string
@@ -393,45 +525,43 @@ start: //authorization event
 		fmt.Fscan(os.Stdin, &name)
 		fmt.Println("Enter password")
 		fmt.Fscan(os.Stdin, &password)
-		//Login
-		DelFacade.Login(name, password)
 
-		if DelFacade.Account.isAuthorized() != nil {
-			goto login //if not authorized
+		deliveryServiceFacade.Login(name, password)
+
+		if deliveryServiceFacade.User.isAuthorized() != nil {
+			goto login
 		}
 
-	home: //home/start point
+	home:
 		fmt.Printf("Home. Choose... \n" +
 			"1 - Show me notifications \n" +
 			"2 - Order food \n" +
-			"3 - Account settings \n" +
-			"4 - Logout\n")
+			"3 - Logout\n")
 
 		fmt.Fscan(os.Stdin, &choice)
-		switch {
-		case choice == 1:
+		switch choice {
+		case 1:
 			fmt.Println("All notifications here")
 			myService.notifyObservers()
 			goto home
-		case choice == 2:
-		showmenu:
-			fmt.Println("Which Restaurant Menu do you want to see\n" +
-				"1 - KFC \n" +
-				"2 - Burger King")
-			fmt.Fscan(os.Stdin, &choice)
+		case 2:
+		showingMenu:
+			fmt.Println("Which Restaurant Menu do you want to see")
+			myService.showAllRestaurants()
+			fmt.Fscan(os.Stdin, &input)
 			var restName string
-			switch choice {
-			case 1:
+			switch input {
+			case "KFC":
 				MenuOfRestaurant("KFC")
 				restName = "KFC"
-			case 2:
+			case "Burger_King":
 				MenuOfRestaurant("Burger King")
 				restName = "Burger King"
 			default:
 				fmt.Println("Choose from the list of Restaurants")
-				goto showmenu
+				goto showingMenu
 			}
-			korzina := []Meal{}
+			var cart []Meal
 		ordering:
 			fmt.Println("Please, type the name of Food")
 			fmt.Fscan(os.Stdin, &input)
@@ -439,7 +569,7 @@ start: //authorization event
 			if err != nil {
 				goto ordering
 			}
-			korzina = append(korzina, meal)
+			cart = append(cart, meal)
 		choosingOneMore:
 			fmt.Println("Do you want to add one more meal?\n" +
 				"1 - Yes\n" +
@@ -449,45 +579,40 @@ start: //authorization event
 			case 1:
 				goto ordering
 			case 2:
-				//Making order
-				cartSum := CalculateCartTotalSum(korzina)
-				var payMethod string
+				cartSum := CalculateCartTotalSum(cart)
+				var payingMethod string
 			paymentChoice:
-				fmt.Println("Will you pay in cash or by card? 1/2?\n")
-				fmt.Fscan(os.Stdin, &payMethod)
+				fmt.Println("Will you pay in cash or by card? 1/2?")
+				fmt.Fscan(os.Stdin, &payingMethod)
 				switch {
-				case payMethod == "1":
-					myWallet := DelFacade.Wallet
-					Buy(myWallet, cartSum)
-				case payMethod == "2":
-					myCard := &Card{Balance: DelFacade.Wallet.card.Balance, Owner: DelFacade.Account.Name}
-					Buy(myCard, cartSum)
+				case payingMethod == "1":
+					myWallet := deliveryServiceFacade.Wallet
+					myWallet.AddMoney(2000)
+					//TODO
+				case payingMethod == "2":
+					myCard := &Card{Balance: deliveryServiceFacade.Wallet.Card.Balance, Owner: deliveryServiceFacade.User.Name}
+					myCard.AddMoney(2000)
+					deliveryServiceFacade.makeOrder(*myCard, cart, cartSum)
 				default:
 					goto paymentChoice
 				}
-
 			default:
 				goto choosingOneMore
 			}
-
 			goto home
-		case choice == 3:
-			fmt.Println("Account settings like change wallet, address")
-			goto home
-		case choice == 4:
-			DelFacade.Account.Logout()
-			goto start
+		case 3:
+			deliveryServiceFacade.User.Logout()
+			goto choosingDeliveryService
 		default:
 			goto home
-			break
 		}
 
-	case input == "n":
-		fmt.Println("Account creation\n")
+	case "n":
+		fmt.Println("User creation")
 		var name string
 		var password string
 		var address string
-		//registration:
+
 		fmt.Println("Please, enter your name")
 		fmt.Fscan(os.Stdin, &name)
 
@@ -496,17 +621,10 @@ start: //authorization event
 
 		fmt.Println("Please, enter your address")
 		fmt.Fscan(os.Stdin, &address)
-		DelFacade.RegisterUser(name, password, address)
-		goto start //redirecting after successful registration
-	default:
-		fmt.Println("Nothing choosen!")
+		deliveryServiceFacade.RegisterUser(name, password, address)
 		goto start
-		break
+	default:
+		fmt.Println("Nothing chosen!")
+		goto start
 	}
-
-	/*
-		kfc := getRestaurantsWithMenu("KFC")
-		fmt.Println("Menu for "+kfc.getName())
-		fmt.Println(kfc.getMenu())
-	*/
 }
