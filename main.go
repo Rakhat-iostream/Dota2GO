@@ -21,20 +21,38 @@ func (k *KoreanHouse) getMenu() map[string]int {
 	return k.menu
 }
 
+func (k *KoreanHouse) String() string {
+	return fmt.Sprintf("Korean House")
+}
+
 type KFC struct {
 	menu map[string]int
 }
 
-func (k *KFC) getMenu() {
-	panic("implement me")
+func (k *KFC) getMenu() map[string]int {
+	k.menu["box master"] = 1850
+	k.menu["zinger"] = 1500
+	k.menu["twister"] = 1300
+	return k.menu
+}
+
+func (k *KFC) String() string {
+	return fmt.Sprintf("KFC")
 }
 
 type DodoPizza struct {
 	menu map[string]int
 }
 
-func (k *DodoPizza) getMenu() {
-	panic("implement me")
+func (d *DodoPizza) getMenu() map[string]int {
+	d.menu["cheese pizza"] = 2300
+	d.menu["tomato pizza"] = 1900
+	d.menu["sausage pizza"] = 2600
+	return d.menu
+}
+
+func (d *DodoPizza) String() string {
+	return fmt.Sprintf("Dodo Pizza")
 }
 
 //Observer
@@ -43,13 +61,6 @@ type User struct {
 	Password   string
 	Address    string
 	Authorized bool //used to control authorization
-}
-
-func NewAccount(name, password, address string) *User {
-	return &User{Name: name,
-		Password:   password,
-		Address:    address,
-		Authorized: false} //firstly, login
 }
 
 func (u *User) authorize(uname, upass string) error {
@@ -78,12 +89,17 @@ func (u *User) Logout() {
 	fmt.Println("You have logged out")
 }
 
-//TODO
-//func (a *User) editAccount() {
-//	fmt.Scan(a.Name)
-//	fmt.Scan(a.Password)
-//
-//}
+func (u *User) HandleChanges(restaurants []Restaurant) {
+	fmt.Printf(
+		"Hello %s \n We have some changes in application: \n =============== %s ===============\n", u.Name, restaurants)
+}
+
+func NewAccount(name, password, address string) *User {
+	return &User{Name: name,
+		Password:   password,
+		Address:    address,
+		Authorized: false} //firstly, login
+}
 
 type Wallet struct {
 	CardBalance float64
@@ -117,6 +133,11 @@ func (dF *DeliveryFacade) Login(name, pass string) error {
 	return nil
 }
 
+func (dF *DeliveryFacade) RegisterUser(uname, upassword, uaddress string) {
+	dF.Account = NewAccount(uname, upassword, uaddress)
+	fmt.Println("You are successfully registered! Please, Login")
+}
+
 //TODO
 func (d *DeliveryFacade) makeOrder() error {
 
@@ -134,22 +155,17 @@ func NewDeliveryFacade() *DeliveryFacade {
 	return DeliveryFacade
 }
 
-func (dF *DeliveryFacade) RegisterUser(uname, upassword, uaddress string) {
-	dF.Account = NewAccount(uname, upassword, uaddress)
-	fmt.Println("You are successfully registered! Please, Login")
-}
-
 //Observed
 type FoodService interface {
 	addRestaurant(restaurant Restaurant)
 	removeRestaurant(restaurant Restaurant)
-	listAllRestaurants()
-	addUser(user *User)
-	removeUser(user *User)
-	NotifyObservers()
+	showAllRestaurants()
+	addObserver(user User)
+	removeObserver(user User)
+	notifyObservers()
 }
 
-func getIndexOfElementInSlice(allRestraunts []Restaurant, restaurant Restaurant) int {
+func getIndexOfRestaurantInSlice(allRestraunts []Restaurant, restaurant Restaurant) int {
 	for i, v := range allRestraunts {
 		if v == restaurant {
 			return i
@@ -158,66 +174,92 @@ func getIndexOfElementInSlice(allRestraunts []Restaurant, restaurant Restaurant)
 	return -1
 }
 
+func getIndexOfObserverInSlice(allUsers []User, user User) int {
+	for i, v := range allUsers {
+		if v == user {
+			return i
+		}
+	}
+	return -1
+}
+
 type Glovo struct {
-	restaurant []Restaurant
-	users      []User
+	restaurants []Restaurant
+	users       []User
 }
 
 func (g *Glovo) addRestaurant(restaurant Restaurant) {
-	panic("implement me")
+	g.restaurants = append(g.restaurants, restaurant)
+	g.notifyObservers()
 }
 
 func (g *Glovo) removeRestaurant(restaurant Restaurant) {
-	panic("implement me")
+	counter := getIndexOfRestaurantInSlice(g.restaurants, restaurant)
+	g.restaurants = append(g.restaurants[:counter], g.restaurants[counter+1:]...)
+	g.notifyObservers()
 }
 
-func (g *Glovo) listAllRestaurants() {
-	panic("implement me")
+func (g *Glovo) showAllRestaurants() {
+	for _, restaurant := range g.restaurants {
+		fmt.Println(restaurant)
+	}
 }
 
-func (g *Glovo) addUser(user *User) {
-	panic("implement me")
+func (g *Glovo) addObserver(user User) {
+	g.users = append(g.users, user)
+	//TODO message in facade that user was added
 }
 
-func (g *Glovo) removeUser(user *User) {
-	panic("implement me")
+func (g *Glovo) removeObserver(user User) {
+	counter := getIndexOfObserverInSlice(g.users, user)
+	g.users = append(g.users[:counter], g.users[counter+1:]...)
 }
 
-func (g *Glovo) NotifyObservers() {
-	panic("implement me")
+func (g *Glovo) notifyObservers() {
+	for _, v := range g.users {
+		v.HandleChanges(g.restaurants)
+	}
 }
 
 type YandexFood struct {
-	news  []string
-	users []User
+	restaurants []Restaurant
+	users       []User
 }
 
 func (y *YandexFood) addRestaurant(restaurant Restaurant) {
-	panic("implement me")
+	y.restaurants = append(y.restaurants, restaurant)
+	y.notifyObservers()
 }
 
 func (y *YandexFood) removeRestaurant(restaurant Restaurant) {
-	panic("implement me")
+	counter := getIndexOfRestaurantInSlice(y.restaurants, restaurant)
+	y.restaurants = append(y.restaurants[:counter], y.restaurants[counter+1:]...)
+	y.notifyObservers()
 }
 
-func (y *YandexFood) listAllRestaurants() {
-	panic("implement me")
+func (y *YandexFood) showAllRestaurants() {
+	for _, restaurant := range y.restaurants {
+		fmt.Println(restaurant)
+	}
 }
 
-func (y *YandexFood) addUser(user *User) {
-	panic("implement me")
+func (y *YandexFood) addObserver(user User) {
+	y.users = append(y.users, user)
+	//TODO message in facade that user was added
 }
 
-func (y *YandexFood) removeUser(user *User) {
-	panic("implement me")
+func (y *YandexFood) removeObserver(user User) {
+	counter := getIndexOfObserverInSlice(y.users, user)
+	y.users = append(y.users[:counter], y.users[counter+1:]...)
 }
 
-func (y *YandexFood) NotifyObservers() {
-	panic("implement me")
+func (y *YandexFood) notifyObservers() {
+	for _, v := range y.users {
+		v.HandleChanges(y.restaurants)
+	}
 }
 
 func main() {
-
 	var input string
 	var choice int
 
@@ -256,6 +298,7 @@ start: //authorization event
 		switch {
 		case choice == 1:
 			fmt.Println("All notifications here")
+
 			goto home
 		case choice == 2:
 			fmt.Println("Outputting menu... Choose food ID")
@@ -294,4 +337,14 @@ start: //authorization event
 		goto start
 		break
 	}
+	//application := &Glovo{}
+	//
+	//user1 := NewAccount("Duman", "asd", "address")
+	//user2 := NewAccount("Maga", "asd", "address")
+	//
+	//application.addObserver(*user1)
+	//application.addObserver(*user2)
+	//
+	//application.addRestaurant(&KoreanHouse{})
+
 }
