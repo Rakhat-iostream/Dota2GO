@@ -5,37 +5,91 @@ import (
 	"os"
 )
 
+//Abstract Factory
 type Restaurant interface {
-	getMenu() map[string]int
+	create(factoryType string) RestaurantFactory
 }
 
-type KoreanHouse struct {
-	menu map[string]int
+type RestaurantFactory interface {
+	create(foodName string) iFood
 }
 
-func (k *KoreanHouse) getMenu() map[string]int {
-	k.menu["ramen"] = 1800
-	k.menu["miso soup"] = 2500
-	k.menu["spicy meat"] = 3000
-	return k.menu
+type iFood interface {
+	getName() string
 }
 
-type KFC struct {
-	menu map[string]int
+type foodFactory struct {
 }
 
-func (k *KFC) getMenu() {
-	panic("implement me")
+func (f foodFactory) create(kh string) RestaurantFactory {
+	fastFood := map[string]RestaurantFactory{
+		"meal": mealFactory{},
+	}
+	return fastFood[kh]
 }
 
-type DodoPizza struct {
-	menu map[string]int
+type mealFactory struct {
 }
 
-func (k *DodoPizza) getMenu() {
-	panic("implement me")
+func (mf mealFactory) create(foodName string) iFood {
+	return meal{
+		food: food{
+			name: foodName,
+		},
+	}
 }
 
+type food struct {
+	name string
+}
+
+type meal struct {
+	food
+}
+
+func (m meal) getName() string {
+	return m.food.name
+}
+
+type KfcFactory struct {
+}
+
+func (k KfcFactory) create(kfc string) iFood {
+	return chicken{
+		food: food{
+			name: kfc,
+		},
+	}
+}
+
+type chicken struct {
+	food
+}
+
+func (c chicken) getName() string {
+	return c.food.name
+}
+
+type DodoPizzaFactory struct {
+}
+
+func (d DodoPizzaFactory) create(name string) iFood {
+	return pizza{
+		food: food{
+			name: name,
+		},
+	}
+}
+
+type pizza struct {
+	food
+}
+
+func (p pizza) getName() string {
+	return p.food.name
+}
+
+//END OF FACTORY
 //Observer
 type User struct {
 	Name     string
@@ -170,6 +224,11 @@ func (y *YandexFood) NotifyObservers() {
 }
 
 func main() {
+	var rest Restaurant = foodFactory{}
+	var foodFact RestaurantFactory = rest.create("soup")
+	var ramen iFood = foodFact.create("ramen")
+	fmt.Println(ramen.getName()) //NULL POINTER
+
 	var name string
 	var password string
 	var input string
