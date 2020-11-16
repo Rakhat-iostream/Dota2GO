@@ -217,8 +217,7 @@ func (y *YandexFood) NotifyObservers() {
 }
 
 func main() {
-	var name string
-	var password string
+
 	var input string
 	var choice int
 
@@ -233,6 +232,8 @@ start: //authorization event
 	switch {
 	case input == "y":
 	login:
+		var name string
+		var password string
 		fmt.Println("Enter name")
 		fmt.Fscan(os.Stdin, &name)
 		fmt.Println("Enter password")
@@ -273,7 +274,21 @@ start: //authorization event
 		}
 
 	case input == "n":
-		fmt.Println("Account creation")
+		fmt.Println("Account creation\n")
+		var name string
+		var password string
+		var address string
+		//registration:
+		fmt.Println("Please, enter your name")
+		fmt.Fscan(os.Stdin, &name)
+
+		fmt.Println("Please, enter your password")
+		fmt.Fscan(os.Stdin, &password)
+
+		fmt.Println("Please, enter your address")
+		fmt.Fscan(os.Stdin, &address)
+		DelFacade.RegisterUser(name, password, address)
+		goto start //redirecting after successful registration
 	default:
 		fmt.Println("Nothing choosen!")
 		goto start
