@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 )
 
@@ -38,9 +39,43 @@ func (k *DodoPizza) getMenu() {
 
 //Observer
 type User struct {
-	Name     string
-	Password string
-	Address  string
+	Name       string
+	Password   string
+	Address    string
+	Authorized bool //used to control authorization
+}
+
+func NewAccount(name, password, address string) *User {
+	return &User{Name: name,
+		Password:   password,
+		Address:    address,
+		Authorized: false} //firstly, login
+}
+
+func (u *User) authorize(uname, upass string) error {
+	if u.Name == uname {
+		if u.Password == upass {
+			u.Authorized = true
+			return nil
+		} else {
+			return fmt.Errorf("wrong pass")
+		}
+	} else {
+		return fmt.Errorf("wrong login")
+	}
+}
+
+func (u *User) isAuthorized() error { //Please, use it every time
+	//when you use user details
+	if u.Authorized == false {
+		return fmt.Errorf("not authorized")
+	}
+	return nil
+}
+
+func (u *User) Logout() {
+	u.Authorized = false
+	fmt.Println("You have logged out")
 }
 
 //TODO
@@ -49,10 +84,6 @@ type User struct {
 //	fmt.Scan(a.Password)
 //
 //}
-
-func NewAccount(name, password, address string) *User {
-	return &User{Name: name, Password: password, Address: address}
-}
 
 type Wallet struct {
 	CardBalance float64
@@ -76,6 +107,16 @@ type DeliveryFacade struct {
 	Wallet      *Wallet
 }
 
+func (dF *DeliveryFacade) Login(name, pass string) error {
+	fmt.Println("Processing User Details [Authorization]")
+	error := dF.Account.authorize(name, pass)
+	if error != nil {
+		log.Fatalf("Errors: %s\n", error.Error())
+	}
+	fmt.Printf("Welcome, %s! You are in System.", dF.Account.Name)
+	return nil
+}
+
 //TODO
 func (d *DeliveryFacade) makeOrder() error {
 
@@ -85,11 +126,17 @@ func (d *DeliveryFacade) makeOrder() error {
 //TODO
 func NewDeliveryFacade() *DeliveryFacade {
 	DeliveryFacade := &DeliveryFacade{
-		Account:     nil,
+		//Account:     nil, //after app run, register user or login
 		FoodService: nil,
 		Wallet:      nil,
 	}
+	fmt.Println("[Application Start]")
 	return DeliveryFacade
+}
+
+func (dF *DeliveryFacade) RegisterUser(uname, upassword, uaddress string) {
+	dF.Account = NewAccount(uname, upassword, uaddress)
+	fmt.Println("You are successfully registered! Please, Login")
 }
 
 //Observed
@@ -176,43 +223,60 @@ func main() {
 	var choice int
 
 	fmt.Println("Welcome to the Food Delivery Service")
-auth: //authorization event
+	DelFacade := NewDeliveryFacade()
+	DelFacade.RegisterUser("User", "Root", "NI st")
+
+start: //authorization event
 	fmt.Println("Do you have account? y/n")
 	fmt.Fscan(os.Stdin, &input)
 
 	switch {
 	case input == "y":
-		fmt.Println("Enter name & password")
+	login:
+		fmt.Println("Enter name")
 		fmt.Fscan(os.Stdin, &name)
+		fmt.Println("Enter password")
 		fmt.Fscan(os.Stdin, &password)
-		authorized := true
-		if authorized {
-		home: //home/start point
-			fmt.Printf("Welcome %s", name+"! Choose... \n"+
-				"1 - Show me notifications \n"+
-				"2 - Order food \n"+
-				"3 - Account settings \n")
+		//Login
+		DelFacade.Login(name, password)
 
-			fmt.Fscan(os.Stdin, &choice)
-			switch {
-			case choice == 1:
-				fmt.Println("All notifications here")
-			case choice == 2:
-				fmt.Println("Outputting menu... Choose food ID")
-				fmt.Fscan(os.Stdin, &input)
-				fmt.Printf("You have choosen %s", input)
-			case choice == 3:
-				fmt.Println("Account settings like change wallet, address")
-			default:
-				goto home
-				break
-			}
-		} else {
-			goto auth
+		if DelFacade.Account.isAuthorized() != nil {
+			goto login //if not authorized
 		}
+
+	home: //home/start point
+		fmt.Printf("Home. Choose... \n" +
+			"1 - Show me notifications \n" +
+			"2 - Order food \n" +
+			"3 - Account settings \n" +
+			"4 - Logout\n")
+
+		fmt.Fscan(os.Stdin, &choice)
+		switch {
+		case choice == 1:
+			fmt.Println("All notifications here")
+			goto home
+		case choice == 2:
+			fmt.Println("Outputting menu... Choose food ID")
+			fmt.Fscan(os.Stdin, &input)
+			fmt.Printf("You have choosen %s\n", input)
+			goto home
+		case choice == 3:
+			fmt.Println("Account settings like change wallet, address")
+			goto home
+		case choice == 4:
+			DelFacade.Account.Logout()
+			goto start
+		default:
+			goto home
+			break
+		}
+
 	case input == "n":
 		fmt.Println("Account creation")
 	default:
 		fmt.Println("Nothing choosen!")
+		goto start
+		break
 	}
 }
