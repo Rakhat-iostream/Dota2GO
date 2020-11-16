@@ -7,7 +7,6 @@ import (
 )
 
 //Factory Pattern START
-//Useful unit
 type Meal struct {
 	MealName string
 	Cost     float64
@@ -98,7 +97,6 @@ func getRestaurantsWithMenu(restName string) IRestaurant {
 	}
 }
 
-//For understandable representation
 func MenuOfRestaurant(restaurantName string) {
 	menuRest := getRestaurantsWithMenu(restaurantName)
 	fmt.Println("Menu of " + menuRest.getName())
@@ -143,8 +141,7 @@ func (u *User) authorize(uname, upass string) error {
 	}
 }
 
-func (u *User) isAuthorized() error { //Please, use it every time
-	//when you use user details
+func (u *User) isAuthorized() error {
 	if u.Authorized == false {
 		return fmt.Errorf("not authorized")
 	}
@@ -165,10 +162,10 @@ func NewAccount(name, password, address string) *User {
 	return &User{Name: name,
 		Password:   password,
 		Address:    address,
-		Authorized: false} //firstly, login
+		Authorized: false}
 }
 
-//kind of Strategy pattern for paying
+//Strategy
 type Payer interface {
 	AddMoney(amount float64)
 	Pay(amount float64) error
@@ -208,11 +205,10 @@ func (c *Card) Pay(amount float64) error {
 	return nil
 }
 
-func Buy(p Payer, cartSum float64) { //Метод Buy скорее всего реализация в Фасаде в makeOrder()
+func Buy(p Payer, cartSum float64) {
 	switch p.(type) {
 	case *Wallet:
 		fmt.Println("Okay,here you need to pay... ")
-		//TODO
 		fmt.Println("Payment was made")
 
 	case *Card:
@@ -239,18 +235,7 @@ func Buy(p Payer, cartSum float64) { //Метод Buy скорее всего р
 	}
 }
 
-func ShowAllDeliveryServices() {
-	fmt.Println("Glovo")
-	fmt.Println("YandexFood")
-}
-
-func ShowAllCouriers() {
-	fmt.Println("beginner")
-	fmt.Println("experienced")
-	fmt.Println("master")
-}
-
-//End of Strategy
+//Facade
 
 type DeliveryFacade struct {
 	User            User
@@ -275,8 +260,7 @@ func (dF *DeliveryFacade) RegisterUser(uname, upassword, uaddress string) {
 	fmt.Println("You are successfully registered! Please, Login")
 }
 
-//TODO
-func (dF *DeliveryFacade) makeOrder(card Card, cart []Meal, cartSum float64) error {
+func (dF *DeliveryFacade) makeOrder(card Card, cart []Meal, cartSum float64) {
 	dF.Card = card
 	var input string
 choosingCourier:
@@ -310,16 +294,16 @@ choosingCourier:
 	}
 	fmt.Printf("Total sum of the check with courier additional percentage: %.2f \n", cartSum)
 	fmt.Println(courier.GiveOrderToClient())
-	return nil
 }
 
-//TODO
 func NewDeliveryFacade(deliveryService *DeliveryService) *DeliveryFacade {
 	DeliveryFacade := &DeliveryFacade{
 		DeliveryService: *deliveryService,
 	}
 	return DeliveryFacade
 }
+
+//Observer
 
 //Observed
 type DeliveryService interface {
@@ -427,7 +411,7 @@ func CalculateCartTotalSum(cart []Meal) float64 {
 	return sum
 }
 
-//Decorator Courier
+//Decorator
 
 //Component
 type Courier interface {
@@ -469,14 +453,23 @@ func (t *MagisterOfAllCouriers) GiveOrderToClient() string {
 }
 
 func (t *MagisterOfAllCouriers) be4sv() string {
-	return "Za svoyu uletnost' deneg ne beru! (Slamming the door)\n"
+	return "Za svoyu uletnost' deneg ne beru! (Slamming the door!)\n"
 }
 
 func NewMagisterCourier(courier Courier) *MagisterOfAllCouriers {
 	return &MagisterOfAllCouriers{Courier: courier}
 }
 
-// End of decorator
+func ShowAllDeliveryServices() {
+	fmt.Println("Glovo")
+	fmt.Println("YandexFood")
+}
+
+func ShowAllCouriers() {
+	fmt.Println("beginner")
+	fmt.Println("experienced")
+	fmt.Println("master")
+}
 
 func main() {
 
@@ -588,7 +581,6 @@ start:
 				case payingMethod == "1":
 					myWallet := deliveryServiceFacade.Wallet
 					myWallet.AddMoney(2000)
-					//TODO
 				case payingMethod == "2":
 					myCard := &Card{Balance: deliveryServiceFacade.Wallet.Card.Balance, Owner: deliveryServiceFacade.User.Name}
 					myCard.AddMoney(2000)
